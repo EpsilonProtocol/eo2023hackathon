@@ -1,0 +1,21 @@
+@import './colors';
+
+@mixin bg-dark {
+	background-color: $black;
+	color: $white;
+}
+
+@mixin bg-primary {
+	background-color: $blue;
+	color: $black;
+}
+
+@mixin bg-gray {
+	background-color: $gray;
+	color: $white;
+}
+
+@mixin bg-secondary {
+	background-color: $green;
+	color: $black;
+}

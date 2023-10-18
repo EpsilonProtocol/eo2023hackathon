@@ -1,0 +1,13 @@
+@import './colors';
+@import './mixins';
+
+* {
+	margin: 0px;
+	padding: 0px;
+
+	box-sizing: border-box;
+}
+
+.dark {
+	@include bg-dark;
+}
