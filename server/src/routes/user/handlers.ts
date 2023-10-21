@@ -37,6 +37,22 @@ export const handleLogin: RequestHandler = async (req, res) => {
 	}
 };
 
+export const handleUpdateUser: VerifiedRequestHandler = async (req, res) => {
+	try {
+		const { safeWalletAddress } = req.body;
+
+		console.log('--userid', req.userId);
+
+		let user;
+
+		if (!!safeWalletAddress) user = await UserService.updateUserSafeWalletAddress(req.userId, safeWalletAddress);
+
+		return sendSuccessResponse(res, { user });
+	} catch (err) {
+		sendErrorResponse(res, err as Error);
+	}
+};
+
 export const handleGetNonce: RequestHandler = async (req, res) => {
 	try {
 		const { address } = req.query;
@@ -46,6 +62,18 @@ export const handleGetNonce: RequestHandler = async (req, res) => {
 		let user = await UserService.getUserFromWalletAddress(address);
 
 		return sendSuccessResponse(res, { nonce: !!user ? user.loginNonce : 0 });
+	} catch (err) {
+		return sendErrorResponse(res, err as Error);
+	}
+};
+
+export const handleGetUser: VerifiedRequestHandler = async (req, res) => {
+	try {
+		const user = await UserService.getUserFromId(req.userId);
+
+		if (!user) throw Error('No user found');
+
+		return sendSuccessResponse(res, { twitter: user.twitter && { id: user.twitter.id, username: user.twitter.username }, safeWalletAddress: user.safeWalletAddress, walletAddress: user.walletAddress });
 	} catch (err) {
 		return sendErrorResponse(res, err as Error);
 	}

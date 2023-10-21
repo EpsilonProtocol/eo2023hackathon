@@ -1,133 +1,217 @@
-'use client';
+"use client";
 
-import { EthersAdapter, SafeAccountConfig, SafeFactory } from '@safe-global/protocol-kit';
-import { ethers } from 'ethers';
-import _ from 'lodash';
-import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useLazyGetNonceQuery, useLoginMutation } from '../../../services/user-service';
+import { skipToken } from "@reduxjs/toolkit/query";
+import {
+  EthersAdapter,
+  SafeAccountConfig,
+  SafeFactory,
+} from "@safe-global/protocol-kit";
+import { ethers } from "ethers";
+import _ from "lodash";
+import {
+  ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  useGetUserQuery,
+  useLazyGetNonceQuery,
+  useLoginMutation,
+  useUpdateUserMutation,
+} from "../../../services/user-service";
 
 declare global {
-	interface Window {
-		ethereum: any;
-	}
+  interface Window {
+    ethereum: any;
+  }
 }
 
-type User = {};
-
-type Wallet = {};
+type User = {
+  walletAddress: string;
+  safeWalletAddress?: string;
+  twitter: {
+    username: string;
+    id: string;
+  };
+};
 
 type AuthContext = {
-	handleConnectMetamask: () => Promise<void>;
-	isMetamaskConnected: boolean;
+  handleCreateSafeWallet: () => Promise<void>;
+  handleConnectMetamask: () => Promise<void>;
+  isMetamaskConnected: boolean;
+  isAuthorized: boolean;
+  userData?: User;
 };
 
 const authContext = createContext<AuthContext>({
-	handleConnectMetamask: async () => {},
-	isMetamaskConnected: false,
+  isAuthorized: false,
+  handleCreateSafeWallet: async () => {},
+  handleConnectMetamask: async () => {},
+  isMetamaskConnected: false,
 });
 
 type AuthContextProviderProps = {
-	children: JSX.Element | JSX.Element[] | string | ReactNode;
+  children: JSX.Element | JSX.Element[] | string | ReactNode;
 };
 
-export default function AuthContextProvider({ children }: AuthContextProviderProps) {
-	const [ethAdapter, setEthAdapter] = useState<EthersAdapter>();
-	const [safeWalletAddress, setSafeWalletAddress] = useState<string>();
+export default function AuthContextProvider({
+  children,
+}: AuthContextProviderProps) {
+  const [ethAdapter, setEthAdapter] = useState<EthersAdapter>();
 
-	const [getUserNonce, nonceData, data] = useLazyGetNonceQuery();
-	const [login, loginErr] = useLoginMutation();
+  const [getUserNonce, nonceData] = useLazyGetNonceQuery();
+  const [login, loginData] = useLoginMutation();
+  const [updateUser, updateUserData] = useUpdateUserMutation();
 
-	useEffect(() => {
-		if (_.isString(loginErr.data)) return console.log('--login error', loginErr);
-	}, [loginErr]);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(
+    () => !!localStorage.getItem("accessToken"),
+  );
 
-	useEffect(() => {
-		(async () => {
-			if (!ethAdapter || !nonceData || !nonceData.isSuccess || !nonceData?.currentData) return;
+  const { data } = useGetUserQuery(!isAuthorized ? skipToken : undefined);
 
-			const address = await ethAdapter.getSignerAddress();
+  const userData = useMemo(() => {
+    if (typeof data === "string") console.log(data);
+    else return data;
+  }, [data]);
 
-			if (!address) return;
+  useEffect(() => {
+    if (updateUserData.isUninitialized) return;
 
-			if (_.isString(nonceData.currentData)) return console.log('--get nonce error', nonceData);
+    if (!!updateUserData.isError)
+      return console.log("--login error", updateUserData);
+    if (!updateUserData.isSuccess)
+      return console.log("--login error", updateUserData);
+  }, [updateUserData]);
 
-			const signer = ethAdapter.getSigner();
+  useEffect(() => {
+    if (loginData.isUninitialized) return;
 
-			if (!signer) return console.log('--error getting signer');
+    if (!!loginData.isError) return console.log("--login error", loginData);
+    if (!loginData.isSuccess) return console.log("--login error", loginData);
 
-			const signature = await signer.signMessage(JSON.stringify(nonceData.currentData));
+    setIsAuthorized(true);
+  }, [loginData]);
 
-			if (!signature) return console.log('--user rejected signature');
+  useEffect(() => {
+    (async () => {
+      if (
+        isAuthorized ||
+        !ethAdapter ||
+        !nonceData ||
+        !nonceData.isSuccess ||
+        !nonceData?.currentData
+      )
+        return;
 
-			console.log({ signature, address });
+      const address = await ethAdapter.getSignerAddress();
 
-			await login({ signature, address });
-		})();
-	}, [ethAdapter, nonceData, login, data]);
+      if (!address) return;
 
-	useEffect(() => {
-		(async () => {
-			if (!ethAdapter) return;
+      if (_.isString(nonceData.currentData))
+        return console.log("--get nonce error", nonceData);
 
-			const address = await ethAdapter.getSignerAddress();
+      const signer = ethAdapter.getSigner();
 
-			if (!address) return;
+      if (!signer) return console.log("--error getting signer");
 
-			await getUserNonce(address);
-		})();
-	}, [ethAdapter, getUserNonce]);
+      const signature = await signer.signMessage(
+        JSON.stringify(nonceData.currentData),
+      );
 
-	const handleConnectMetamask = useCallback(async () => {
-		const provider = new ethers.providers.Web3Provider(window.ethereum);
+      if (!signature) return console.log("--user rejected signature");
 
-		await provider.send('eth_requestAccounts', []);
+      await login({ signature, address });
+    })();
+  }, [ethAdapter, isAuthorized, nonceData, login]);
 
-		let signer = provider.getSigner();
+  useEffect(() => {
+    (async () => {
+      if (!ethAdapter) return;
 
-		if ((await signer.getChainId()) !== 5) {
-			await provider.send('wallet_switchEthereumChain', [{ chainId: '0x5' }]);
+      const address = await ethAdapter.getSignerAddress();
 
-			await provider.send('eth_requestAccounts', []);
+      if (!address) return;
 
-			signer = provider.getSigner();
-		}
+      console.log("--address", address);
 
-		setEthAdapter(
-			new EthersAdapter({
-				ethers,
-				signerOrProvider: signer,
-			})
-		);
-	}, []);
+      await getUserNonce(address);
+    })();
+  }, [ethAdapter, getUserNonce]);
 
-	const handleCreateSafeWallet = useCallback(async () => {
-		if (!ethAdapter) return alert('NO ETH ADAPTER');
+  const handleConnectMetamask = useCallback(async () => {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
 
-		const safeFactory = await SafeFactory.create({ ethAdapter: ethAdapter });
+    await provider.send("eth_requestAccounts", []);
 
-		const safeAccountConfig: SafeAccountConfig = {
-			owners: [(await ethAdapter.getSignerAddress()) ?? ''],
-			threshold: 1,
-		};
+    let signer = provider.getSigner();
 
-		const safeSdkOwner1 = await safeFactory.deploySafe({ safeAccountConfig });
+    if ((await signer.getChainId()) !== 11155111) {
+      await provider.send("wallet_switchEthereumChain", [
+        { chainId: "0xaa36a7" },
+      ]);
 
-		const safeAddress = await safeSdkOwner1.getAddress();
+      await provider.send("eth_requestAccounts", []);
 
-		console.log('Your Safe has been deployed:');
-		console.log(`https://goerli.etherscan.io/address/${safeAddress}`);
-		console.log(`https://app.safe.global/gor:${safeAddress}`);
+      signer = provider.getSigner();
+    }
 
-		setSafeWalletAddress(safeAddress);
-	}, [ethAdapter]);
+    setEthAdapter(
+      new EthersAdapter({
+        ethers,
+        signerOrProvider: signer,
+      }),
+    );
+  }, []);
 
-	const isMetamaskConnected = useMemo<boolean>(() => !!ethAdapter, [ethAdapter]);
+  const handleCreateSafeWallet = useCallback(async () => {
+    if (!ethAdapter) return alert("NO ETH ADAPTER");
 
-	return <authContext.Provider value={{ handleConnectMetamask, isMetamaskConnected }}>{children}</authContext.Provider>;
+    const safeFactory = await SafeFactory.create({ ethAdapter: ethAdapter });
+
+    const safeAccountConfig: SafeAccountConfig = {
+      owners: [(await ethAdapter.getSignerAddress()) ?? ""],
+      threshold: 1,
+    };
+
+    let address = await safeFactory.predictSafeAddress(safeAccountConfig);
+
+    console.log("--safe address", address);
+
+    if ((await ethAdapter.getContractCode(address)).length === 0) {
+      const safeSdkOwner1 = await safeFactory.deploySafe({ safeAccountConfig });
+
+      address = await safeSdkOwner1.getAddress();
+    }
+
+    await updateUser({ safeWalletAddress: address });
+  }, [ethAdapter, updateUser]);
+
+  const isMetamaskConnected = useMemo<boolean>(
+    () => !!ethAdapter,
+    [ethAdapter],
+  );
+
+  return (
+    <authContext.Provider
+      value={{
+        handleConnectMetamask,
+        isMetamaskConnected,
+        handleCreateSafeWallet,
+        isAuthorized: isAuthorized,
+        userData,
+      }}
+    >
+      {children}
+    </authContext.Provider>
+  );
 }
 
 export const useAuth = () => {
-	const data = useContext(authContext);
+  const data = useContext(authContext);
 
-	return data;
+  return data;
 };

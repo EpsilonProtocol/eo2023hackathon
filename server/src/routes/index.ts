@@ -1,8 +1,10 @@
-import { Router } from 'express';
-import userRouter from './user';
+import { Router } from "express";
+import twitterRouter from "./twitter";
+import userRouter from "./user";
 
 const mainRouter = Router();
 
-mainRouter.use('/user', userRouter);
+mainRouter.use("/user", userRouter);
+mainRouter.use("/twitter", twitterRouter);
 
 export default mainRouter;
