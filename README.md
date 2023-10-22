@@ -3,6 +3,7 @@
 # Zaapbot
 ![Zaap](https://github.com/EpsilonProtocol/eo2023hackathon/assets/148345042/8131adc3-d313-4749-9b42-398792d4ea02)
 
+### Link to Tweet https://x.com/hrojantorse/status/1716135926257365034?s=20
 
 ## Overview
 
