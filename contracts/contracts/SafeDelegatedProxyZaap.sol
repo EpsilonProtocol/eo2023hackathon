@@ -73,7 +73,7 @@ contract SafeDelegatedProxyZaap {
         address payable _to,
         uint256 _amount) public {
 
-        bytes memory data = abi.encodePacked(claimId, outcome);
+        bytes memory data = abi.encodeCall(ZaapMarket.placeBet, (claimId, outcome));
 
         Enum.Operation op = Enum.Operation.Call;
         (bool success) = payer.execTransactionFromModule(
