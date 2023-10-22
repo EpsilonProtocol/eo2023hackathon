@@ -28,9 +28,10 @@ We use the UMA Optmistic Oracle for our betting contracts.
 
 ## Team 
 
-Sarat Angajala https://github.com/SaratAngajalaoffl
-Konrad Strachan https://github.com/konradstrachan
-Vishwa Naik https://github.com/hrojantorse
+
+### Sarat Angajala https://github.com/SaratAngajalaoffl
+### Konrad Strachan https://github.com/konradstrachan
+### Vishwa Naik https://github.com/hrojantorse
 
 # Deployed Contracts
 
