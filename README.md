@@ -8,6 +8,8 @@
 
 Zaapbot is a Peer to Peer prediction market designed to allow users to bet on anything, anywhere. For this hackathon, we show Zaapbots multimodal capabilties inside the beating heart of crypto- TWITTER. We simplify the experience of prediction markets without making any additional trust assumptions, using Account abstraction. We create SCW wallets using SAFE SDK and Metamask authentication. Users can customise allowance and whitelist markets inside the Zaapbot UI. 
 
+### (DEMO)
+
 ## Problem
 
 Broken Crypto UX has seen the proliferation of TG bots that make significant trust assumptions. For prediction markets, applications in web2.0 are censored, with a high take rate. Crypto counterparts are inaccessible to web2.0 users, while TG bots hold the private keys of users on centralised servers. 
