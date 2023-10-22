@@ -25,11 +25,7 @@ We use the UMA Optmistic Oracle for our betting contracts.
 ![image](https://github.com/EpsilonProtocol/eo2023hackathon/assets/60383339/fd7409ae-c428-4263-9f7e-e70d885805e6)
 ![image](https://github.com/EpsilonProtocol/eo2023hackathon/assets/60383339/54ec3058-042d-4c45-ab0e-2821591aba9c)
 
-
-
-
 ## Team 
-
 
 ### Sarat Angajala https://github.com/SaratAngajalaoffl
 ### Konrad Strachan https://github.com/konradstrachan
@@ -37,14 +33,14 @@ We use the UMA Optmistic Oracle for our betting contracts.
 
 # Deployed Contracts
 
-## Market Contracts 
+## Prediction Market Contract
 
 ### Scroll > https://sepolia.scrollscan.com/address/0x4dc36fcc192c042fc49fe934d86e8942d79c4e93
-### Mantle > https://explorer.testnet.mantle.xyz/tx/0x9e7811b55303869b070f03cb601aee2cc1757c858df9ff23d06f34b27afc6123
-### Goerli > 
+### Mantle > https://explorer.testnet.mantle.xyz/address/0x4DC36FCc192c042fC49Fe934D86E8942D79c4e93
+### Goerli > https://goerli.etherscan.io/address/0xFF109C7C3AA9706F0bFDc2f4a7173B4F7aA9bc22
 
-## Safe 
+## Safe Delegate Contracts
 
-https://github.com/EpsilonProtocol/eo2023hackathon/blob/main/contracts/contracts/SafeDelegatedProxyZaap.sol
+### Goerli > https://goerli.etherscan.io/address/0x2976ad88221447146E887B8ECef8CA0b526384C6
 
 
