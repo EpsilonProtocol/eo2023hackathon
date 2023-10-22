@@ -6,16 +6,29 @@ import "https://github.com/UMAprotocol/protocol/blob/7a93650a7494eaee83756382a18
 contract ZaapPredictionMarket {
     // Define the Optimistic Oracle V3 instance
     OptimisticOracleV3Interface public oov3;
+    
+    // The ERC20 token used for placing bets
+    IERC20 public token;
+
+    struct Bet {
+        address better;
+        uint256 amount;
+        bool claimIsTrue;
+    }
 
     // Structure to represent a question
     struct Claim {
-        bytes claim;         // The question description (assertion)
-        uint256 startTime;   // Start time of the question
-        uint256 endTime;     // End time of the question
-        bool resolved;       // Whether the question is resolved
-        bool result;         // The resolved result (true for Yes, false for No)
-        address resolvedBy;  // Address that resolved the question
-        bytes32 assertionId; // ID for OO
+        bytes claim;                    // The question description (assertion)
+        uint256 startTime;              // Start time of the question
+        uint256 endTime;                // End time of the question
+        bool resolved;                  // Whether the question is resolved
+        bool result;                    // The resolved result (true for Yes, false for No)
+        address resolvedBy;             // Address that resolved the question
+        bytes32 assertionId;            // ID for OO
+        mapping(uint256 => Bet) bets;
+        uint256 betCounter;
+        uint256 poolTrue;
+        uint256 poolFalse;
     }
 
     // Mapping to store questions
@@ -23,8 +36,9 @@ contract ZaapPredictionMarket {
     uint256 public claimCounter;
 
     // Constructor to set the Optimistic Oracle V3 address
-    constructor(address _oov3Address) {
+    constructor(address _oov3Address, address _tokenAddress) {
         oov3 = OptimisticOracleInterface(_oov3Address);
+        token = _tokenAddress;
     }
 
     // Function to propose a new question
@@ -35,44 +49,39 @@ contract ZaapPredictionMarket {
         uint256 claimId = claimCounter++;
         claims[claimId] = Claim({
             description: _description,
-            assertionId: bytes(0),
             startTime: _startTime,
             endTime: _endTime,
             resolved: false,
             result: false,
-            resolvedBy: address(0)
+            resolvedBy: address(0),
+            assertionId: bytes(0),
+            betCounter: 0
         });
     }
 
     // Function to place a bet
-    function placeBet(uint256 _claimId, bool _prediction) public payable {
-        Question storage question = questions[_claimId];
-        require(question.startTime <= block.timestamp && question.endTime >= block.timestamp, "Betting is not allowed at this time");
-        require(!question.resolved, "Question is already resolved");
+    function placeBet(uint256 _claimId, uint256 _amount, bool _prediction) public payable {
+        Claim storage claim = questions[_claimId];
+        require(claim.startTime <= block.timestamp && question.endTime >= block.timestamp, "Betting is not allowed at this time");
+        require(!claim.resolved, "Question is already resolved");
         require(msg.value > 0, "Bet amount must be greater than 0");
-    }
 
-    // Function to resolve a question using Optimistic Oracle V3
-    function resolveQuestion(uint256 _claimId, bool _result) public {
-        Question storage question = questions[_claimId];
-        require(!question.resolved, "Question is already resolved");
-        require(block.timestamp > question.endTime, "Question is not yet resolved");
+        require(token.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
 
-        // Prepare the ancillary data for the Optimistic Oracle
-        bytes32 identifier = bytes32(_claimId); // Use a unique identifier for each question
-        bytes32 ancillaryData = OracleAncillaryData.encodeForYesNo(_result); // Convert "Yes" or "No" to ancillary data
-        uint256 timeout = 100; // Set a timeout value in blocks
-        uint256 disputeId = oov3.requestPriceWithIdentifier(identifier, ancillaryData, timeout);
+        uint256 betId = claim.betCounter++;
+        claim.bets[betId] = Bet({
+            bettor: msg.sender,
+            amount: _amount,
+            claimIsTrue: _prediction
+        });
 
-        // Wait for the Oracle to resolve the dispute
-        bool isFinal = oov3.isDisputeFinalized(disputeId);
-        require(isFinal, "Oracle result is not finalized yet");
+        if (_prediction == true){
+            claim.poolTrue += _amount;
+        } else {
+            claim.poolFalse += _amount;
+        }
 
-        // Get the final result from the Oracle
-        (uint256 finalPrice, ) = oov3.getDisputeData(disputeId);
-        question.result = finalPrice == 1; // Set the result based on the Oracle's response
-        question.resolved = true;
-        question.resolvedBy = msg.sender;
+        // TODO emit event
     }
 
     // Assert the truth against the Optimistic Asserter
@@ -80,24 +89,52 @@ contract ZaapPredictionMarket {
     function assertTruth(uint256 _claimId) public {
         Claim storage claim = claims[_claimId];
         require(!claim.resolved, "Claim is already resolved");
-        require(block.timestamp < claim.endTime, "Question is not yet ready to be resolved");
+        require(block.timestamp < claim.endTime, "Claim is not yet ready to be resolved");
         require(claim.assertionId == bytes(0), "Assertion already made");
 
         // Starts the assertion resolution process
         // TODO set a bond amount as part of assertion
         // TODO set a dispute and escalation manager
-        // TODO assert negative result to question
+        // TODO assert negative result to claim
         claim.assertionId = oov3.assertTruthWithDefaults(claim.claim, address(this));
+
+        // TODO emit event
     }
 
-    // If the assertion has not been disputed within the challenge window this will finalise and return result
-    function settleAndGetAssertionResult(uint256 _claimId) public returns (bool) {
-        return oov3.settleAndGetAssertionResult(claims[_claimId].assertionId);
+    // If the assertion has not been disputed within the challenge window this will finalise and pay winners
+    function resolveQuestion(uint256 _claimId, bool _result) public {
+        Claim storage claim = claims[_claimId];
+        require(!claim.resolved, "Question is already resolved");
+        require(block.timestamp > question.endTime, "Question is not yet resolved");
+
+        // TODO: assumption here is this will revert if the challenge window hasn't started or finished
+        bool result = oov3.settleAndGetAssertionResult(claims[_claimId].assertionId);
+
+        // TODO: make total pool less to pay for Oracle and protocol fees in future
+        // TODO2: a more elegant way is to give each position an ERC20 LP-like stake (which opens up secondary markets)
+        uint256 totalPrizePool = claim.poolTrue + claim.poolFalse;
+
+        for (uint256 i = 0; i < claim.betCounter; i++) {
+            if (claim.bets[i].claimIsTrue == result) {
+                // pay winning bet
+                uint256 outcomePool = 0;
+                
+                if (claim.bets[i].claimIsTrue == true) {
+                    outcomePool = claim.poolTrue;
+                } else {
+                    outcomePool = claim.poolFalse;
+                }
+
+                uint256 winnings = (bet.amount / outcomePool) * totalPrizePool;
+
+                require(token.transfer(bet.bettor, winnings), "Transfer failed");
+            }
+        }
     }
 
-    // Just return the assertion result. Can only be called once the assertion has been settled.
-    // If the assertion has not been settled then this will revert
-    function getAssertionResult(uint256 _claimId) public view returns (bool) {
+    function getQuestionFinalResult(uint256 _claimId) public view returns (bool) {
+        // Just return the assertion result. Can only be called once the assertion has been settled.
+        // If the assertion has not been settled then this will revert
         return oov3.getAssertionResult(claims[_claimId].assertionId);
     }
 
