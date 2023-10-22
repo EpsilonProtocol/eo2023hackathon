@@ -20,6 +20,8 @@ We use the UMA Optmistic Oracle for our betting contracts.
 
 ## How it works
 
+![image](https://github.com/EpsilonProtocol/eo2023hackathon/assets/60383339/fd7409ae-c428-4263-9f7e-e70d885805e6)
+![image](https://github.com/EpsilonProtocol/eo2023hackathon/assets/60383339/54ec3058-042d-4c45-ab0e-2821591aba9c)
 
 
 
