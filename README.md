@@ -16,7 +16,7 @@ Broken Crypto UX has seen the proliferation of TG bots that make significant tru
 
 ## Our Solution 
 
-With Zaapbot, we give users best in class UX for prediction markets using Twitter, SAFE Account abstraction SDK and UMAs Optimistic Oracle. Users can have full control and custody of their funds, while being able to enjoy a multimodal experince of betting on ANYTHING. For this hackathon, we showcase this capabiltiy in twitter, and our Zaapbot UI. The UI is used to create an account, authotise it with Metamask (the controller wallet) and customise allowances (user whitelist + bet limits). Once the user does this, they are free to create markets and participate in them. 
+With Zaapbot, we give users best in class UX for prediction markets using Twitter, SAFE Account abstraction SDK and UMAs Optimistic Oracle. Users can have full control and custody of their funds, while being able to enjoy a multimodal experince of betting on ANYTHING. For this hackathon, we showcase this capabiltiy in twitter, and our Zaapbot UI. The UI is used to deploy a SAFE Account Abstraction wallet, authorize it with Metamask (the controller wallet), and customize allowances (bet limits). Once the user does this, they are free to create markets and participate in them directly from twitter. 
 
 We use the UMA Optmistic Oracle for our betting contracts. 
 
