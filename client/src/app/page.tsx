@@ -14,11 +14,13 @@ export default function Web() {
 
   const {
     userBalance,
+    userAllowance,
     isAuthorized,
     isLoading,
     userData,
     isMetamaskConnected,
     handleConnectMetamask,
+    handleSetAllowance,
   } = useAuth();
 
   const router = useRouter();
@@ -77,13 +79,18 @@ export default function Web() {
         <p className={classes.header}>
           Allowance <br />
           <h2>
-            {parseFloat(ethers.utils.formatEther(userBalance)).toPrecision(2)}
+            {parseFloat(ethers.utils.formatEther(userAllowance)).toPrecision(2)}
             ETH
           </h2>
         </p>
 
         <div className={classes.balance_actions}>
-          <button className={classes.allowance_button}>Set Allowance</button>
+          <button
+            className={classes.allowance_button}
+            onClick={handleSetAllowance}
+          >
+            Set Allowance
+          </button>
         </div>
       </div>
 

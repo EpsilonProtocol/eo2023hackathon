@@ -1,6 +1,10 @@
 "use client";
 
-import { NEXT_PUBLIC_ZAAPBOT_MODULE } from "@/config/env";
+import {
+  NEXT_PUBLIC_ZAAPBOT_EOA,
+  NEXT_PUBLIC_ZAAPBOT_MARKET,
+  NEXT_PUBLIC_ZAAPBOT_MODULE,
+} from "@/config/env";
 import { skipToken } from "@reduxjs/toolkit/query";
 import Safe, {
   EthersAdapter,
@@ -24,6 +28,7 @@ import {
   useLoginMutation,
   useUpdateUserMutation,
 } from "../../../services/user-service";
+import DELEGATE_ABI from "./abi.json";
 
 declare global {
   interface Window {
@@ -42,9 +47,11 @@ type User = {
 
 type AuthContext = {
   userBalance: ethers.BigNumber;
+  userAllowance: ethers.BigNumber;
   isLoading: boolean;
   isZaapbotModuleEnabled: boolean;
   isZaapbotModuleEnabledLoading: boolean;
+  handleSetAllowance: () => Promise<void>;
   handleCreateSafeWallet: () => Promise<void>;
   handleConnectMetamask: () => Promise<void>;
   handleEnableZaapbotModule: () => Promise<void>;
@@ -55,10 +62,12 @@ type AuthContext = {
 
 const authContext = createContext<AuthContext>({
   userBalance: ethers.BigNumber.from(0),
+  userAllowance: ethers.BigNumber.from(0),
   isLoading: true,
   isZaapbotModuleEnabled: false,
   isZaapbotModuleEnabledLoading: true,
   isAuthorized: false,
+  handleSetAllowance: async () => {},
   handleCreateSafeWallet: async () => {},
   handleConnectMetamask: async () => {},
   handleEnableZaapbotModule: async () => {},
@@ -85,6 +94,9 @@ export default function AuthContextProvider({
   const [login, loginData] = useLoginMutation();
   const [updateUser, updateUserData] = useUpdateUserMutation();
   const [userBalance, setUserBalance] = useState<ethers.BigNumber>(
+    ethers.BigNumber.from(0),
+  );
+  const [userAllowance, setUserAllowance] = useState<ethers.BigNumber>(
     ethers.BigNumber.from(0),
   );
 
@@ -154,6 +166,27 @@ export default function AuthContextProvider({
       setIsZaapbotModuleEnabledLoading(false);
     })();
   }, [userData, ethAdapter]);
+
+  useEffect(() => {
+    (async () => {
+      if (!ethAdapter || !userData?.safeWalletAddress) return;
+
+      const contract = new ethers.Contract(
+        NEXT_PUBLIC_ZAAPBOT_MODULE,
+        DELEGATE_ABI,
+        await ethAdapter.getSigner(),
+      );
+
+      const allowance = await contract.getAllowance(
+        userData.safeWalletAddress,
+        NEXT_PUBLIC_ZAAPBOT_MARKET,
+      );
+
+      console.log("--allowance", allowance);
+
+      setUserAllowance(allowance);
+    })();
+  }, [ethAdapter, userData]);
 
   useEffect(() => {
     (async () => {
@@ -302,18 +335,28 @@ export default function AuthContextProvider({
       safeAddress: userData.safeWalletAddress,
     });
 
-    const transactionData = ethers.utils.solidityPack(
-      ["bytes4"],
-      [ethers.utils.id("transfer(address,uint256)").substring(0, 10)],
+    const iface = new ethers.utils.Interface(DELEGATE_ABI);
+
+    const transactionData = iface.encodeFunctionData(
+      "setMaxContractAllowance",
+      [
+        NEXT_PUBLIC_ZAAPBOT_MARKET,
+        ethers.utils.parseEther(newAllowanceAmount),
+        NEXT_PUBLIC_ZAAPBOT_EOA,
+      ],
     );
 
-    const data = await safe.createTransaction({
+    const tx = await safe.createTransaction({
       safeTransactionData: {
         to: NEXT_PUBLIC_ZAAPBOT_MODULE,
-        data: "",
+        data: transactionData,
         value: "0",
       },
     });
+
+    const txResponse = await safe.executeTransaction(tx);
+
+    await txResponse.transactionResponse?.wait();
   }, [ethAdapter, userData]);
 
   const isMetamaskConnected = useMemo<boolean>(
@@ -325,6 +368,8 @@ export default function AuthContextProvider({
     <authContext.Provider
       value={{
         userBalance,
+        userAllowance,
+        handleSetAllowance,
         handleEnableZaapbotModule,
         isZaapbotModuleEnabledLoading,
         isLoading,

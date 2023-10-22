@@ -11,3 +11,11 @@ export const TWITTER_OAUTH2_CLIENTID = process.env[
 export const TWITTER_OAUTH2_SECRET = process.env[
   "TWITTER_OAUTH2_SECRET"
 ] as string;
+
+export const TWITTER_ACCESS_TOKEN = process.env[
+  "TWITTER_ACCESS_TOKEN"
+] as string;
+
+export const TWITTER_ACCESS_SECRET = process.env[
+  "TWITTER_ACCESS_SECRET"
+] as string;

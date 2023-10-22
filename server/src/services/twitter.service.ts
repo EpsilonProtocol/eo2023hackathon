@@ -1,7 +1,12 @@
 import { TwitterApi } from "twitter-api-v2";
-import { TWITTER_OAUTH2_CLIENTID, TWITTER_OAUTH2_SECRET } from "../config/env";
+import {
+  TWITTER_CLIENT_ID,
+  TWITTER_CLIENT_SECRET,
+  TWITTER_OAUTH2_CLIENTID,
+  TWITTER_OAUTH2_SECRET,
+} from "../config/env";
 
-class TwitterService {
+export class TwitterService {
   client: TwitterApi;
 
   constructor() {
@@ -23,6 +28,17 @@ class TwitterService {
       codeVerifier: verifier,
       redirectUri: redirectUri,
     });
+  }
+
+  async getStream() {
+    const app = new TwitterApi({
+      appKey: TWITTER_CLIENT_ID,
+      appSecret: TWITTER_CLIENT_SECRET,
+    });
+
+    const appClient = await app.appLogin();
+
+    return appClient.v1.mentionTimeline();
   }
 }
 

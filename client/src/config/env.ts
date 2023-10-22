@@ -6,3 +6,7 @@ export const NEXT_PUBLIC_API_BASE_URL =
   process.env["NEXT_PUBLIC_API_BASE_URL"] || "";
 export const NEXT_PUBLIC_ZAAPBOT_MODULE =
   process.env["NEXT_PUBLIC_ZAAPBOT_MODULE"] || "";
+export const NEXT_PUBLIC_ZAAPBOT_MARKET =
+  process.env["NEXT_PUBLIC_ZAAPBOT_MARKET"] || "";
+export const NEXT_PUBLIC_ZAAPBOT_EOA =
+  process.env["NEXT_PUBLIC_ZAAPBOT_EOA"] || "";
