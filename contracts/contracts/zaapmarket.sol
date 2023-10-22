@@ -10,7 +10,8 @@ contract ZaapPredictionMarket {
     // The ERC20 token used for placing bets
     IERC20 public token;
 
-    event BetMade(address bettor, uint256 amount, bool prediction);
+    event NewClaimRegistered(address originator, uint256 id);
+    event BetMadeOnClaimOutcome(address bettor, uint256 amount, bool prediction);
     event RewardPaid(address bettor, uint256 amount);
 
     struct Bet {
@@ -44,27 +45,29 @@ contract ZaapPredictionMarket {
         token = IERC20(_tokenAddress);
     }
 
-// Function to propose a new question
-function proposeClaim(string memory _claim, uint256 _startTime, uint256 _endTime) public {
-    // TODO: add a minimum amount for the bet
-    require(_endTime > _startTime, "End time must be after start time");
+    // Function to propose a new question
+    function proposeClaim(string memory _claim, uint256 _startTime, uint256 _endTime) public {
+        // TODO: add a minimum amount for the bet
+        require(_endTime > _startTime, "End time must be after start time");
 
-    uint256 claimId = claimCounter++;
+        uint256 claimId = claimCounter++;
 
-    bytes memory claimBytes = bytes(_claim);  // Convert string to bytes
+        bytes memory claimBytes = bytes(_claim);  // Convert string to bytes
 
-    claims[claimId] = Claim({
-        assertedClaim: claimBytes,
-        startTime: _startTime,
-        endTime: _endTime,
-        resolved: false,
-        resolvedBy: address(0),
-        assertionId: 0x00,
-        betCounter: 0,
-        poolTrue: 0,
-        poolFalse: 0
-    });
-}
+        claims[claimId] = Claim({
+            assertedClaim: claimBytes,
+            startTime: _startTime,
+            endTime: _endTime,
+            resolved: false,
+            resolvedBy: address(0),
+            assertionId: 0x00,
+            betCounter: 0,
+            poolTrue: 0,
+            poolFalse: 0
+        });
+
+        emit NewClaimRegistered(msg.sender, claimId);
+    }
 
     // Function to place a bet
     function placeBet(uint256 _claimId, uint256 _amount, bool _prediction) public {
@@ -90,7 +93,7 @@ function proposeClaim(string memory _claim, uint256 _startTime, uint256 _endTime
             claim.poolFalse += _amount;
         }
 
-        emit BetMade(msg.sender, _amount, _prediction);
+        emit BetMadeOnClaimOutcome(msg.sender, _amount, _prediction);
     }
 
     // Assert the truth against the Optimistic Asserter
