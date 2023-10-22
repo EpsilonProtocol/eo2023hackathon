@@ -41,6 +41,7 @@ type User = {
 };
 
 type AuthContext = {
+  userBalance: ethers.BigNumber;
   isLoading: boolean;
   isZaapbotModuleEnabled: boolean;
   isZaapbotModuleEnabledLoading: boolean;
@@ -53,6 +54,7 @@ type AuthContext = {
 };
 
 const authContext = createContext<AuthContext>({
+  userBalance: ethers.BigNumber.from(0),
   isLoading: true,
   isZaapbotModuleEnabled: false,
   isZaapbotModuleEnabledLoading: true,
@@ -82,6 +84,9 @@ export default function AuthContextProvider({
   const [getUserNonce, nonceData] = useLazyGetNonceQuery();
   const [login, loginData] = useLoginMutation();
   const [updateUser, updateUserData] = useUpdateUserMutation();
+  const [userBalance, setUserBalance] = useState<ethers.BigNumber>(
+    ethers.BigNumber.from(0),
+  );
 
   const [isAuthorized, setIsAuthorized] = useState<boolean>(
     () => !!localStorage.getItem("accessToken"),
@@ -149,6 +154,17 @@ export default function AuthContextProvider({
       setIsZaapbotModuleEnabledLoading(false);
     })();
   }, [userData, ethAdapter]);
+
+  useEffect(() => {
+    (async () => {
+      if (!ethAdapter) return;
+      const accountBalance = await ethAdapter.getBalance(
+        (await ethAdapter.getSignerAddress()) ?? "",
+      );
+
+      setUserBalance(accountBalance);
+    })();
+  }, [ethAdapter]);
 
   useEffect(() => {
     (async () => {
@@ -274,6 +290,32 @@ export default function AuthContextProvider({
     setIsZaapbotModuleEnabled(true);
   }, [ethAdapter, userData?.safeWalletAddress]);
 
+  const handleSetAllowance = useCallback(async () => {
+    if (!ethAdapter || !userData?.safeWalletAddress) return;
+
+    const newAllowanceAmount = prompt("Enter allowance amount");
+
+    if (!newAllowanceAmount) return;
+
+    const safe = await Safe.create({
+      ethAdapter: ethAdapter,
+      safeAddress: userData.safeWalletAddress,
+    });
+
+    const transactionData = ethers.utils.solidityPack(
+      ["bytes4"],
+      [ethers.utils.id("transfer(address,uint256)").substring(0, 10)],
+    );
+
+    const data = await safe.createTransaction({
+      safeTransactionData: {
+        to: NEXT_PUBLIC_ZAAPBOT_MODULE,
+        data: "",
+        value: "0",
+      },
+    });
+  }, [ethAdapter, userData]);
+
   const isMetamaskConnected = useMemo<boolean>(
     () => !!ethAdapter,
     [ethAdapter],
@@ -282,6 +324,7 @@ export default function AuthContextProvider({
   return (
     <authContext.Provider
       value={{
+        userBalance,
         handleEnableZaapbotModule,
         isZaapbotModuleEnabledLoading,
         isLoading,
