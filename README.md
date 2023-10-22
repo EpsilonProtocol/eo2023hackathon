@@ -1,6 +1,8 @@
 # ETH online 2023 Hackathon
 
 # Zaapbot
+![Zaap](https://github.com/EpsilonProtocol/eo2023hackathon/assets/148345042/8131adc3-d313-4749-9b42-398792d4ea02)
+
 
 ## Overview
 
@@ -17,6 +19,8 @@ With Zaapbot, we give users best in class UX for prediction markets using Twitte
 We use the UMA Optmistic Oracle for our betting contracts. 
 
 ## How it works
+
+
 
 
 
