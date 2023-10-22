@@ -27,12 +27,19 @@ We use the UMA Optmistic Oracle for our betting contracts.
 ## Team 
 
 Sarat Angajala 
-Konrad Strachan
-Vishwa Naik
+Konrad Strachan https://github.com/konradstrachan
+Vishwa Naik https://github.com/hrojantorse
 
 # Deployed Contracts
 
-Scroll
-Mantle
-Goerli
+## Market Contracts 
+
+Scroll > https://sepolia.scrollscan.com/address/0x4dc36fcc192c042fc49fe934d86e8942d79c4e93
+Mantle > https://explorer.testnet.mantle.xyz/tx/0x9e7811b55303869b070f03cb601aee2cc1757c858df9ff23d06f34b27afc6123
+Goerli > 
+
+## Safe 
+
+https://github.com/EpsilonProtocol/eo2023hackathon/blob/main/contracts/contracts/SafeDelegatedProxyZaap.sol
+
 
