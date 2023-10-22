@@ -113,6 +113,42 @@ Usage
 
 This smart contract can be utilized in a decentralized application (DApp) to create and manage prediction markets. Users can propose questions, place bets, and resolve questions to determine winning bets.
 
+#### SafeDelegatedProxyZaap Smart Contract
+
+*Overview*
+
+The SafeDelegatedProxyZaap smart contract facilitates secure and delegated interactions with the ZaapMarket contract, particularly for betting on a market. It manages allowances for different contracts and provides a mechanism to bet on a market using funds from a Gnosis Safe instance. The contract is designed to ensure that users can safely place bets on the ZaapMarket contract while controlling their allowances.
+
+*Functions*
+
+The contract provides several functions for managing allowances and betting on the ZaapMarket contract:
+
+**generateAllowanceKey(address owner, address allowedContract) public pure returns (bytes32):**
+
+Generates a unique key for allowances based on the owner's address and the allowed contract's address.
+
+**getAllowance(address owner, address allowedContract) public view returns (uint256):**
+
+Retrieves the allowance amount for a specific owner and allowed contract.
+
+**setMaxContractAllowance(address allowedContract, uint256 amount, address spender) public:**
+
+Sets the maximum contract allowance for a specified amount and spender on behalf of the owner.
+Requires the sender to be the owner.
+
+**betOnMarket(address owner, address allowedContract, uint256 amount, uint256 claimId, bool outcomeBet) public:**
+
+Allows a user to place a bet on a market by transferring the specified amount from the sender's allowance.
+The bet is placed on the ZaapMarket contract with the specified claimId and outcome.
+Requires that the amount does not exceed the available allowance.
+
+**transferEtherFromGnosisSafe(Executor payer, uint256 claimId, bool outcome, address payable _to, uint256 _amount) public:**
+
+Initiates the transfer of Ether from a Gnosis Safe instance to the _to address.
+It constructs a data payload to call the ZaapMarket.placeBet function with the specified claimId and outcome.
+Uses the payer to execute the transaction.
+Ensures that the transaction is executed successfully.
+
 ## Team 
 
 ### Sarat Angajala https://github.com/SaratAngajalaoffl
