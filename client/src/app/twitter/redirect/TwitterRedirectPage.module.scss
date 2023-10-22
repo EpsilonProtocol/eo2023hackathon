@@ -1,0 +1,87 @@
+.container {
+  display: grid;
+
+  place-items: center;
+
+  min-height: 100vh;
+
+  .success_container {
+    min-width: 600px;
+    min-height: 400px;
+
+    padding: 16px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    align-items: center;
+    gap: 32px;
+
+    .header {
+      align-self: center;
+
+      color: white;
+      font-size: 32px;
+      font-family: Montserrat;
+      font-weight: 700;
+    }
+
+    .hero {
+      align-self: center;
+    }
+
+    .subheader {
+      align-self: center;
+
+      color: white;
+      font-size: 18px;
+      font-family: Montserrat;
+      font-weight: 600;
+    }
+
+    .body {
+      align-self: center;
+
+      color: white;
+      font-size: 18px;
+      font-family: Montserrat;
+      font-weight: 400;
+    }
+
+    .account_details {
+      display: flex;
+      flex-direction: column;
+
+      width: 100%;
+
+      gap: 12px;
+
+      .account_details_row {
+        display: flex;
+        flex-direction: row;
+
+        .account_details_key {
+          flex: 1;
+
+          overflow: hidden;
+        }
+
+        .account_details_value {
+          flex: 1;
+
+          overflow: hidden;
+        }
+      }
+    }
+
+    .continue_button {
+      align-self: flex-end;
+
+      color: white;
+      font-size: 32px;
+      font-family: Montserrat;
+      font-weight: 400;
+    }
+  }
+}
