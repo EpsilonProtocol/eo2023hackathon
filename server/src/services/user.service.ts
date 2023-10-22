@@ -49,8 +49,6 @@ export class UserService {
   ) => {
     const userObj = await userModel.findById(new mongoose.Types.ObjectId(user));
 
-    console.log("--user obj", userObj);
-
     if (!userObj) throw Error("User not found!");
 
     userObj.safeWalletAddress = safeWalletAddress;
