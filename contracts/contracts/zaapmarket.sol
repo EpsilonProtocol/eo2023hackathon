@@ -10,6 +10,9 @@ contract ZaapPredictionMarket {
     // The ERC20 token used for placing bets
     IERC20 public token;
 
+    event BetMade(address bettor, uint256 amount, bool prediction);
+    event RewardPaid(address bettor, uint256 amount);
+
     struct Bet {
         address bettor;
         uint256 amount;
@@ -22,7 +25,6 @@ contract ZaapPredictionMarket {
         uint256 startTime;              // Start time of the question
         uint256 endTime;                // End time of the question
         bool resolved;                  // Whether the question is resolved
-        bool result;                    // The resolved result (true for Yes, false for No)
         address resolvedBy;             // Address that resolved the question
         bytes32 assertionId;            // ID for OO
         uint256 betCounter;
@@ -42,35 +44,36 @@ contract ZaapPredictionMarket {
         token = IERC20(_tokenAddress);
     }
 
-    // Function to propose a new question
-    function proposeClaim(bytes memory _claim, uint256 _startTime, uint256 _endTime) public {
-        // TODO : add minimum amount for bet
-        require(_endTime > _startTime, "End time must be after start time");
+// Function to propose a new question
+function proposeClaim(string memory _claim, uint256 _startTime, uint256 _endTime) public {
+    // TODO: add a minimum amount for the bet
+    require(_endTime > _startTime, "End time must be after start time");
 
-        uint256 claimId = claimCounter++;
+    uint256 claimId = claimCounter++;
 
-        claims[claimId] = Claim({
-            assertedClaim: _claim,
-            startTime: _startTime,
-            endTime: _endTime,
-            resolved: false,
-            result: false,
-            resolvedBy: address(0),
-            assertionId: 0x00,
-            betCounter: 0,
-            poolTrue: 0,
-            poolFalse: 0
-        });
-    }
+    bytes memory claimBytes = bytes(_claim);  // Convert string to bytes
+
+    claims[claimId] = Claim({
+        assertedClaim: claimBytes,
+        startTime: _startTime,
+        endTime: _endTime,
+        resolved: false,
+        resolvedBy: address(0),
+        assertionId: 0x00,
+        betCounter: 0,
+        poolTrue: 0,
+        poolFalse: 0
+    });
+}
 
     // Function to place a bet
-    function placeBet(uint256 _claimId, uint256 _amount, bool _prediction) public payable {
+    function placeBet(uint256 _claimId, uint256 _amount, bool _prediction) public {
         Claim storage claim = claims[_claimId];
         require(claim.startTime <= block.timestamp 
                 && claim.endTime >= block.timestamp,
                 "Betting is not allowed at this time");
         require(!claim.resolved, "Question is already resolved");
-        require(msg.value > 0, "Bet amount must be greater than 0");
+        require(_amount > 0, "Bet amount must be greater than 0");
 
         require(token.transferFrom(msg.sender, address(this), _amount), "Transfer failed");
 
@@ -87,7 +90,7 @@ contract ZaapPredictionMarket {
             claim.poolFalse += _amount;
         }
 
-        // TODO emit event
+        emit BetMade(msg.sender, _amount, _prediction);
     }
 
     // Assert the truth against the Optimistic Asserter
@@ -95,7 +98,7 @@ contract ZaapPredictionMarket {
     function assertTruth(uint256 _claimId) public {
         Claim storage claim = claims[_claimId];
         require(!claim.resolved, "Claim is already resolved");
-        require(block.timestamp < claim.endTime, "Claim is not yet ready to be resolved");
+        require(block.timestamp > claim.endTime, "Claim is not yet ready to be resolved");
         require(claim.assertionId == 0x00, "Assertion already made");
 
         // Starts the assertion resolution process
@@ -108,7 +111,8 @@ contract ZaapPredictionMarket {
     }
 
     // If the assertion has not been disputed within the challenge window this will finalise and pay winners
-    function resolveQuestion(uint256 _claimId, bool _result) public {
+    // NOTE : There is a short wait time between calling assertTruth and being able to call this function to allow for despute
+    function resolveQuestionAndPayWinners(uint256 _claimId, bool _result) public {
         Claim storage claim = claims[_claimId];
         require(!claim.resolved, "Claim is already resolved");
         require(block.timestamp > claim.endTime, "Claim is not yet resolved");
@@ -136,8 +140,11 @@ contract ZaapPredictionMarket {
                 address beneficiary = bets[_claimId][i].bettor;
 
                 require(token.transfer(beneficiary, winnings), "Transfer failed");
+                emit RewardPaid(beneficiary, winnings);
             }
         }
+
+        claim.resolved = true;
     }
 
     function getQuestionFinalResult(uint256 _claimId) public view returns (bool) {
@@ -147,17 +154,13 @@ contract ZaapPredictionMarket {
     }
 
     // Return the full assertion object contain all information associated with the assertion. Can be called any time.
-    function getAssertion(uint256 _claimId)
-        public
-        view
+    function getAssertion(uint256 _claimId) public view
         returns (OptimisticOracleV3Interface.Assertion memory)
     {
         return oov3.getAssertion(claims[_claimId].assertionId);
     }
 
-    function getClaim(uint256 _claimId)
-        public
-        view
+    function getClaim(uint256 _claimId) public view
         returns (Claim memory)
     {
         return claims[_claimId];
